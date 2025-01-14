@@ -11,3 +11,5 @@ services:
     volumes:
       - .:/app
     command: npm start
+    env_file:
+      - stack.env
