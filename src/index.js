@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const doAll = require('./logic');
+const lofiify =require('./tumblrPosts');
 require('dotenv').config();
 
 const app = express();
@@ -19,6 +20,11 @@ app.get('/', (req, res) => {
 
 app.get('/api/data', async (req, res) => {
   const data = await doAll();
+  res.json(data);
+});
+
+app.get('/api/tumbly', async (req, res) => {
+  const data = await lofiify();
   res.json(data);
 });
 
