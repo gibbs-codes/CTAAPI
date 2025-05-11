@@ -47,6 +47,9 @@ export async function listTodaysEvents() {
       start: moment(event.start.dateTime || event.start.date)
         .tz(TIMEZONE)
         .format('h:mm A'),
+      end: moment(event.end.dateTime || event.end.date)
+        .tz(TIMEZONE)
+        .format('h:mm A'), 
     }));
   }
 

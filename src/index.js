@@ -1,12 +1,13 @@
 import express from 'express';
 import cors from 'cors'
 import { doAll } from './logic.js'
+import { fetchTasks } from './habitica.js';
 //import lofiify  from './tumblrPosts.js';
 import dotenv from 'dotenv';
 dotenv.config();
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { listTodaysEvents } from './testCalendar.js';
+import { listTodaysEvents } from './calendar.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,6 +40,26 @@ app.get('/api/events', async (req, res) => {
     res.status(500).send('Internal server error');
   }
 });
+app.get('/api/habitica', async (req, res) => {
+  try {
+    const { habits, todos } = await fetchTasks();
+    res.json({ habits, todos });
+  } catch (error) {
+    console.error('Error fetching tasks from Habitica:', error);
+    res.status(500).send('Internal server error');
+  }
+});
+
+let profile = 'morning'
+
+app.get('/api/profile', async (req, res) => {
+  res.json({ profile });
+})
+app.post('/api/profile', async (req, res) => {
+  const { profile: newProfile } = req.body;
+  profile = newProfile;
+  res.json({ profile });
+})
 
 // app.get('/api/tumbly', async (req, res) => {
 //   const data = await lofiify();
