@@ -1,6 +1,7 @@
-require('dotenv').config();
-const axios = require('axios');
-const moment = require('moment-timezone');
+import axios from 'axios';
+import moment from 'moment-timezone';
+import dotenv from 'dotenv';
+dotenv.config();
 
 function sortTrain(trains) {
     let south = [];
@@ -61,7 +62,7 @@ async function getBrownLine() {
     }
 }
 
-async function doAll() {
+export async function doAll() {
     const buses = await getBus();
     const red = await getRedLine();
     const brown = await getBrownLine();
@@ -69,4 +70,3 @@ async function doAll() {
     return await result;
 }
 
-module.exports = doAll;
