@@ -7,9 +7,6 @@ on:
 
 env:
   APP_NAME: CTAAAPI
-  DOCKER_CONFIG: /Users/${{ github.actor }}/.docker
-  DOCKER_BUILDKIT: 0
-  COMPOSE_DOCKER_CLI_BUILD: 0
 
 jobs:
   deploy:
@@ -21,7 +18,7 @@ jobs:
       
     - name: Configure Docker environment
       run: |
-        echo "Setting up Docker environment..."
+        echo "Deploying ${{ github.repository }} from organization ${{ github.repository_owner }}"
         
         # Create Docker config directory
         mkdir -p ~/.docker
@@ -36,26 +33,18 @@ jobs:
         }
         EOF
         
-        # Set environment variables
-        export DOCKER_CONFIG=~/.docker
-        export DOCKER_BUILDKIT=0
-        export COMPOSE_DOCKER_CLI_BUILD=0
-        
         # Test Docker access
         echo "Testing Docker access..."
         docker --version
-        docker system info --format '{{.ServerVersion}}'
         
     - name: Set up deployment directory
       run: |
         DEPLOY_DIR=~/deployments/${{ env.APP_NAME }}
         echo "Cleaning up old deployment..."
         
-        # Stop any running containers
-        if [ -f "$DEPLOY_DIR/docker-compose.yml" ]; then
-          cd $DEPLOY_DIR
-          docker-compose down 2>/dev/null || true
-        fi
+        # Stop any existing container
+        docker stop ctaaapi-production 2>/dev/null || true
+        docker rm ctaaapi-production 2>/dev/null || true
         
         # Clean up directory
         rm -rf $DEPLOY_DIR
@@ -87,13 +76,13 @@ jobs:
           exit 1
         fi
         
-    - name: Build and start container (Alternative)
+    - name: Build and start container
       env:
         DOCKER_CONFIG: ~/.docker
         DOCKER_BUILDKIT: 0
       run: |
         cd ~/deployments/${{ env.APP_NAME }}
-        echo "Building with direct Docker commands..."
+        echo "Building CTAAAPI for organization ${{ github.repository_owner }}..."
         
         # Stop any existing container
         docker stop ctaaapi-production 2>/dev/null || true
@@ -119,15 +108,15 @@ jobs:
         sleep 15
         
         echo "Checking container status..."
-        docker-compose -f ~/deployments/${{ env.APP_NAME }}/docker-compose.yml ps
+        docker ps | grep ctaaapi-production
         
         echo "Testing health endpoint..."
         if curl -f http://localhost:3001/health; then
-          echo "✅ Deployment successful!"
+          echo "✅ CTAAAPI deployment successful!"
         else
           echo "❌ Health check failed"
           echo "Container logs:"
-          docker-compose -f ~/deployments/${{ env.APP_NAME }}/docker-compose.yml logs
+          docker logs ctaaapi-production
           exit 1
         fi
         
@@ -138,5 +127,5 @@ jobs:
     - name: Show final status
       run: |
         echo "=== Final Status ==="
-        docker-compose -f ~/deployments/${{ env.APP_NAME }}/docker-compose.yml ps
+        docker ps | grep ctaaapi-production
         echo "CTAAAPI is available at http://localhost:3001"
