@@ -4,7 +4,7 @@ services:
   app:
     build: 
       context: .
-      dockerfile: Dockerfile
+      dockerfile: dockerfile
     container_name: ctaaapi-production
     ports:
       - "3001:3001"
@@ -15,7 +15,7 @@ services:
       # Mount service account file instead of credentials.json
       - ./service-account.json:/usr/src/app/service-account.json:ro
     env_file:
-      - .env
+      - .env  # Changed from stack.env to .env
     restart: unless-stopped
     networks:
       - ctaaapi-network

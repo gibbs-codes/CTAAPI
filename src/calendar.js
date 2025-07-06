@@ -19,6 +19,7 @@ function loadServiceAccountClient() {
   }
   
   const serviceAccount = JSON.parse(fs.readFileSync(SERVICE_ACCOUNT_PATH));
+  console.log(`Using service account: ${serviceAccount.client_email}`);
   
   const auth = new google.auth.GoogleAuth({
     keyFile: SERVICE_ACCOUNT_PATH,
@@ -36,15 +37,20 @@ export async function listTodaysEvents() {
   
     const startOfDay = moment().tz(TIMEZONE).startOf('day').toISOString();
     const endOfDay = moment().tz(TIMEZONE).endOf('day').toISOString();
+    
+    console.log(`Fetching events from ${startOfDay} to ${endOfDay}`);
   
     const res = await calendar.events.list({
-      calendarId: 'primary', // You may need to change this to your specific calendar ID
+      calendarId: 'jrgibz@gmail.com', 
       timeMin: startOfDay,
       timeMax: endOfDay,
       maxResults: 10,
       singleEvents: true,
       orderBy: 'startTime',
     });
+  
+    console.log(`Found ${res.data.items?.length || 0} events`);
+    console.log('Raw events:', JSON.stringify(res.data.items, null, 2));
   
     const events = res.data.items || [];
   
@@ -61,6 +67,8 @@ export async function listTodaysEvents() {
     }));
   } catch (error) {
     console.error('Error fetching calendar events:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     // Return empty array instead of crashing the server
     return [];
   }

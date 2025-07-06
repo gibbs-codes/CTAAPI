@@ -35,8 +35,8 @@ jobs:
         
         echo "Copying environment file..."
         if [ -f "$APP_SECRETS/production.env" ]; then
-          cp $APP_SECRETS/production.env $DEPLOY_DIR/stack.env
-          echo "✅ Environment file copied"
+          cp $APP_SECRETS/production.env $DEPLOY_DIR/.env
+          echo "✅ Environment file copied as .env"
         else
           echo "❌ Environment file not found at $APP_SECRETS/production.env"
           exit 1
