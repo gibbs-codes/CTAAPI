@@ -16,6 +16,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Fix Docker keychain access
+      run: |
+        # Ensure Docker config doesn't use keychain
+        mkdir -p ~/.docker
+        echo '{"credsStore": "", "credHelpers": {}}' > ~/.docker/config.json
+        
+        # Make sure Docker is running
+        docker info || (echo "Docker not running, please start Docker Desktop" && exit 1)
+      
     - name: Set up deployment directory
       run: |
         DEPLOY_DIR=~/deployments/${{ env.APP_NAME }}
@@ -55,6 +64,11 @@ jobs:
       run: |
         cd ~/deployments/${{ env.APP_NAME }}
         echo "Building and starting CTAAAPI..."
+        
+        # Set environment variables to avoid keychain issues
+        export DOCKER_BUILDKIT=0
+        export COMPOSE_DOCKER_CLI_BUILD=0
+        
         docker-compose up -d --build
         
     - name: Verify deployment
