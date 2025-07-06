@@ -1,0 +1,16 @@
+name: Test Organization Runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: self-hosted
+    
+    steps:
+    - name: Simple test
+      run: |
+        echo "Organization runner test"
+        echo "Repository: ${{ github.repository }}"
+        whoami
+        pwd
