@@ -2,14 +2,37 @@ version: '3.8'
 
 services:
   app:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: ctaaapi-production
     ports:
       - "3001:3001"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - PORT=3001
     volumes:
-      - .:/app
-    command: npm start
+      # Mount credentials.json from the deployment directory
+      - ./credentials.json:/usr/src/app/credentials.json:ro
+      # Mount token.json with read/write for OAuth token updates
+      - ./src/token.json:/usr/src/app/src/token.json:rw
+      # Mount the entire src directory to persist any generated files
+      - ./src:/usr/src/app/src:rw
     env_file:
-      - stack.env
+      - .env
+    restart: unless-stopped
+    networks:
+      - ctaaapi-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "app=CTAAAPI"
+      - "environment=production"
+
+networks:
+  ctaaapi-network:
+    driver: bridge

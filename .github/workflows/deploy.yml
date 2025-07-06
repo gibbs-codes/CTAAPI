@@ -1,0 +1,93 @@
+name: Deploy CTAAAPI to Mac Mini
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  APP_NAME: CTAAAPI
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up deployment directory
+      run: |
+        DEPLOY_DIR=~/deployments/${{ env.APP_NAME }}
+        echo "Cleaning up old deployment..."
+        docker-compose -f $DEPLOY_DIR/docker-compose.yml down 2>/dev/null || true
+        rm -rf $DEPLOY_DIR
+        mkdir -p $DEPLOY_DIR
+        
+        echo "Copying new code..."
+        cp -r $GITHUB_WORKSPACE/* $DEPLOY_DIR/
+        cd $DEPLOY_DIR
+        
+    - name: Copy secrets and credentials
+      run: |
+        DEPLOY_DIR=~/deployments/${{ env.APP_NAME }}
+        APP_SECRETS=~/secrets/${{ env.APP_NAME }}
+        
+        echo "Copying environment file..."
+        if [ -f "$APP_SECRETS/production.env" ]; then
+          cp $APP_SECRETS/production.env $DEPLOY_DIR/stack.env
+          echo "✅ Environment file copied"
+        else
+          echo "❌ Environment file not found at $APP_SECRETS/production.env"
+          exit 1
+        fi
+        
+        echo "Copying credentials..."
+        if [ -f "$APP_SECRETS/credentials.json" ]; then
+          cp $APP_SECRETS/credentials.json $DEPLOY_DIR/credentials.json
+          echo "✅ Credentials file copied"
+        else
+          echo "❌ Credentials file not found at $APP_SECRETS/credentials.json"
+          exit 1
+        fi
+        
+        # Copy token.json if it exists (for Google OAuth)
+        if [ -f "$APP_SECRETS/token.json" ]; then
+          mkdir -p $DEPLOY_DIR/src
+          cp $APP_SECRETS/token.json $DEPLOY_DIR/src/token.json
+          echo "✅ Token file copied"
+        fi
+        
+    - name: Build and start container
+      run: |
+        cd ~/deployments/${{ env.APP_NAME }}
+        echo "Building and starting CTAAAPI..."
+        docker-compose up -d --build
+        
+    - name: Verify deployment
+      run: |
+        echo "Waiting for container to start..."
+        sleep 15
+        
+        echo "Checking container status..."
+        docker-compose -f ~/deployments/${{ env.APP_NAME }}/docker-compose.yml ps
+        
+        echo "Testing health endpoint..."
+        if curl -f http://localhost:3001/health; then
+          echo "✅ Deployment successful!"
+        else
+          echo "❌ Health check failed"
+          echo "Container logs:"
+          docker-compose -f ~/deployments/${{ env.APP_NAME }}/docker-compose.yml logs
+          exit 1
+        fi
+        
+    - name: Clean up old images
+      run: |
+        docker image prune -f --filter label=app=CTAAAPI
+        
+    - name: Show final status
+      run: |
+        echo "=== Final Status ==="
+        docker-compose -f ~/deployments/${{ env.APP_NAME }}/docker-compose.yml ps
+        echo "CTAAAPI is available at http://localhost:3001"
