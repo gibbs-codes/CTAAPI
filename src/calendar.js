@@ -8,68 +8,60 @@ import moment from 'moment-timezone';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const TOKEN_PATH = path.join(__dirname, 'token.json');
-// In container, credentials.json will be at the app root
-const CREDENTIALS_PATH = path.join(__dirname, '../credentials.json');
+// Use service account instead of OAuth
+const SERVICE_ACCOUNT_PATH = path.join(__dirname, '../service-account.json');
 const TIMEZONE = 'America/Chicago';
 
-function loadOAuthClient() {
-  if (!fs.existsSync(CREDENTIALS_PATH)) {
-    console.error(`Credentials file not found at ${CREDENTIALS_PATH}`);
-    throw new Error(`Credentials file not found at ${CREDENTIALS_PATH}`);
+function loadServiceAccountClient() {
+  if (!fs.existsSync(SERVICE_ACCOUNT_PATH)) {
+    console.error(`Service account file not found at ${SERVICE_ACCOUNT_PATH}`);
+    throw new Error(`Service account file not found at ${SERVICE_ACCOUNT_PATH}`);
   }
   
-  const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH));
-  const { client_secret, client_id, redirect_uris } = credentials.installed;
-
-  const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+  const serviceAccount = JSON.parse(fs.readFileSync(SERVICE_ACCOUNT_PATH));
   
-  if (!fs.existsSync(TOKEN_PATH)) {
-    console.error(`Token file not found at ${TOKEN_PATH}. You may need to run authentication first.`);
-    throw new Error(`Token file not found at ${TOKEN_PATH}`);
-  }
+  const auth = new google.auth.GoogleAuth({
+    keyFile: SERVICE_ACCOUNT_PATH,
+    scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
+  });
   
-  const token = JSON.parse(fs.readFileSync(TOKEN_PATH));
-  oAuth2Client.setCredentials(token);
-  return oAuth2Client;
+  return auth;
 }
 
 export async function listTodaysEvents() {
-    try {
-      const auth = loadOAuthClient();
-      const calendar = google.calendar({ version: 'v3', auth });
-    
-      const startOfDay = moment().tz(TIMEZONE).startOf('day').toISOString();
-      const endOfDay = moment().tz(TIMEZONE).endOf('day').toISOString();
-    
-      const res = await calendar.events.list({
-        calendarId: 'primary',
-        timeMin: startOfDay,
-        timeMax: endOfDay,
-        maxResults: 10,
-        singleEvents: true,
-        orderBy: 'startTime',
-      });
-    
-      const events = res.data.items || [];
-    
-      return events.map(event => ({
-        title: event.summary || 'No Title',
-        description: event.description || '',
-        location: event.location || '',
-        start: moment(event.start.dateTime || event.start.date)
-          .tz(TIMEZONE)
-          .format('h:mm A'),
-        end: moment(event.end.dateTime || event.end.date)
-          .tz(TIMEZONE)
-          .format('h:mm A'), 
-      }));
-    } catch (error) {
-      console.error('Error fetching calendar events:', error);
-      return []; // Return empty array instead of crashing
-    }
+  
+  try {
+    const auth = loadServiceAccountClient();
+    const calendar = google.calendar({ version: 'v3', auth });
+  
+    const startOfDay = moment().tz(TIMEZONE).startOf('day').toISOString();
+    const endOfDay = moment().tz(TIMEZONE).endOf('day').toISOString();
+  
+    const res = await calendar.events.list({
+      calendarId: 'primary', // You may need to change this to your specific calendar ID
+      timeMin: startOfDay,
+      timeMax: endOfDay,
+      maxResults: 10,
+      singleEvents: true,
+      orderBy: 'startTime',
+    });
+  
+    const events = res.data.items || [];
+  
+    return events.map(event => ({
+      title: event.summary || 'No Title',
+      description: event.description || '',
+      location: event.location || '',
+      start: moment(event.start.dateTime || event.start.date)
+        .tz(TIMEZONE)
+        .format('h:mm A'),
+      end: moment(event.end.dateTime || event.end.date)
+        .tz(TIMEZONE)
+        .format('h:mm A'), 
+    }));
+  } catch (error) {
+    console.error('Error fetching calendar events:', error);
+    // Return empty array instead of crashing the server
+    return [];
+  }
 }
-
-// Remove the automatic execution for production
-// const res = await listTodaysEvents().catch(console.error);
-// console.log(res)

@@ -5,9 +5,9 @@ import dotenv from 'dotenv';
 // Load .env file (optional if already loaded globally elsewhere)
 dotenv.config();
 
-// Initialize OpenAI client
+// Initialize OpenAI client with environment variable
 const openai = new OpenAI({
-  apiKey: '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',
+  apiKey: process.env.OPENAI_API_KEY, // Use environment variable
 });
 
 // System prompt defining the AI's role

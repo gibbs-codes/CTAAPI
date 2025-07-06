@@ -12,12 +12,8 @@ services:
       - NODE_ENV=production
       - PORT=3001
     volumes:
-      # Mount credentials.json from the deployment directory
-      - ./credentials.json:/usr/src/app/credentials.json:ro
-      # Mount token.json with read/write for OAuth token updates
-      - ./src/token.json:/usr/src/app/src/token.json:rw
-      # Mount the entire src directory to persist any generated files
-      - ./src:/usr/src/app/src:rw
+      # Mount service account file instead of credentials.json
+      - ./service-account.json:/usr/src/app/service-account.json:ro
     env_file:
       - .env
     restart: unless-stopped

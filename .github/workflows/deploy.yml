@@ -42,20 +42,13 @@ jobs:
           exit 1
         fi
         
-        echo "Copying credentials..."
-        if [ -f "$APP_SECRETS/credentials.json" ]; then
-          cp $APP_SECRETS/credentials.json $DEPLOY_DIR/credentials.json
-          echo "✅ Credentials file copied"
+        echo "Copying service account credentials..."
+        if [ -f "$APP_SECRETS/service-account.json" ]; then
+          cp $APP_SECRETS/service-account.json $DEPLOY_DIR/service-account.json
+          echo "✅ Service account file copied"
         else
-          echo "❌ Credentials file not found at $APP_SECRETS/credentials.json"
+          echo "❌ Service account file not found at $APP_SECRETS/service-account.json"
           exit 1
-        fi
-        
-        # Copy token.json if it exists (for Google OAuth)
-        if [ -f "$APP_SECRETS/token.json" ]; then
-          mkdir -p $DEPLOY_DIR/src
-          cp $APP_SECRETS/token.json $DEPLOY_DIR/src/token.json
-          echo "✅ Token file copied"
         fi
         
     - name: Build and start container
