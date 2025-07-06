@@ -91,10 +91,11 @@ jobs:
         # Build the image
         docker build --no-cache -t ctaaapi:latest .
         
-        # Run the container
+        # Run the container with shared network
         docker run -d \
           --name ctaaapi-production \
           --restart unless-stopped \
+          --network gibbs-apps \
           -p 3001:3001 \
           -v $(pwd)/service-account.json:/usr/src/app/service-account.json:ro \
           --env-file .env \
