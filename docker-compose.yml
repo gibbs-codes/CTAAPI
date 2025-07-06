@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     build: 
@@ -11,11 +9,11 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
+      - DOCKER_BUILDKIT=0
     volumes:
-      # Mount service account file instead of credentials.json
       - ./service-account.json:/usr/src/app/service-account.json:ro
     env_file:
-      - .env  # Changed from stack.env to .env
+      - .env
     restart: unless-stopped
     networks:
       - ctaaapi-network
