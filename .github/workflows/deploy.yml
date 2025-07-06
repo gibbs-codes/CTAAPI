@@ -7,6 +7,9 @@ on:
 
 env:
   APP_NAME: CTAAAPI
+  DOCKER_CONFIG: /Users/${{ github.actor }}/.docker
+  DOCKER_BUILDKIT: 0
+  COMPOSE_DOCKER_CLI_BUILD: 0
 
 jobs:
   deploy:
@@ -16,26 +19,50 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Fix Docker keychain access
+    - name: Configure Docker environment
       run: |
-        # Ensure Docker config doesn't use keychain
-        mkdir -p ~/.docker
-        echo '{"credsStore": "", "credHelpers": {}}' > ~/.docker/config.json
+        echo "Setting up Docker environment..."
         
-        # Make sure Docker is running
-        docker info || (echo "Docker not running, please start Docker Desktop" && exit 1)
-      
+        # Create Docker config directory
+        mkdir -p ~/.docker
+        
+        # Create config without keychain
+        cat > ~/.docker/config.json << 'EOF'
+        {
+          "auths": {},
+          "credsStore": "",
+          "credHelpers": {},
+          "experimental": "disabled"
+        }
+        EOF
+        
+        # Set environment variables
+        export DOCKER_CONFIG=~/.docker
+        export DOCKER_BUILDKIT=0
+        export COMPOSE_DOCKER_CLI_BUILD=0
+        
+        # Test Docker access
+        echo "Testing Docker access..."
+        docker --version
+        docker system info --format '{{.ServerVersion}}'
+        
     - name: Set up deployment directory
       run: |
         DEPLOY_DIR=~/deployments/${{ env.APP_NAME }}
         echo "Cleaning up old deployment..."
-        docker-compose -f $DEPLOY_DIR/docker-compose.yml down 2>/dev/null || true
+        
+        # Stop any running containers
+        if [ -f "$DEPLOY_DIR/docker-compose.yml" ]; then
+          cd $DEPLOY_DIR
+          docker-compose down 2>/dev/null || true
+        fi
+        
+        # Clean up directory
         rm -rf $DEPLOY_DIR
         mkdir -p $DEPLOY_DIR
         
         echo "Copying new code..."
         cp -r $GITHUB_WORKSPACE/* $DEPLOY_DIR/
-        cd $DEPLOY_DIR
         
     - name: Copy secrets and credentials
       run: |
@@ -61,15 +88,21 @@ jobs:
         fi
         
     - name: Build and start container
+      env:
+        DOCKER_CONFIG: ~/.docker
+        DOCKER_BUILDKIT: 0
+        COMPOSE_DOCKER_CLI_BUILD: 0
       run: |
         cd ~/deployments/${{ env.APP_NAME }}
         echo "Building and starting CTAAAPI..."
         
-        # Set environment variables to avoid keychain issues
-        export DOCKER_BUILDKIT=0
-        export COMPOSE_DOCKER_CLI_BUILD=0
+        # Double-check Docker config
+        echo "Docker config location: $DOCKER_CONFIG"
+        cat ~/.docker/config.json
         
-        docker-compose up -d --build
+        # Try building with explicit flags
+        docker-compose build --no-cache app
+        docker-compose up -d
         
     - name: Verify deployment
       run: |
@@ -91,7 +124,7 @@ jobs:
         
     - name: Clean up old images
       run: |
-        docker image prune -f --filter label=app=CTAAAPI
+        docker image prune -f --filter label=app=CTAAAPI || true
         
     - name: Show final status
       run: |
