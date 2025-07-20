@@ -8,6 +8,7 @@ dotenv.config();
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { listTodaysEvents } from './calendar.js';
+import messagingRoutes from './routes/messaging.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,6 +76,8 @@ app.post('/api/profile', async (req, res) => {
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
+
+app.use('/api/message', messagingRoutes);
 
 // app.get('/api/tumbly', async (req, res) => {
 //   const data = await lofiify();
