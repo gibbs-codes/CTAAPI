@@ -39,6 +39,7 @@ app.use('/api/events', eventsRoutes);
 app.use('/api/habitica', habiticaRoutes);
 app.use('/api/profile', profileRoutes);
 
+
 // Health check endpoint - now includes CalendarService status
 app.get('/health', async (_req, res) => {
   const calendarServiceHealthy = await calendarServiceClient.healthCheck();
