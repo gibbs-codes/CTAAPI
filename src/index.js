@@ -1,3 +1,4 @@
+// src/index.js - Updated to include CalendarService health check
 import express from 'express';
 import cors from 'cors'
 import dotenv from 'dotenv';
@@ -10,6 +11,7 @@ import eventsRoutes from './routes/events.js';
 import habiticaRoutes from './routes/habitica.js';
 import profileRoutes from './routes/profile.js';
 import { logger } from './utils/logger.js';
+import { calendarServiceClient } from './services/CalendarServiceClient.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,9 +39,19 @@ app.use('/api/events', eventsRoutes);
 app.use('/api/habitica', habiticaRoutes);
 app.use('/api/profile', profileRoutes);
 
-// Health check endpoint
-app.get('/health', (_req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+// Health check endpoint - now includes CalendarService status
+app.get('/health', async (_req, res) => {
+  const calendarServiceHealthy = await calendarServiceClient.healthCheck();
+  
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    services: {
+      ctaaapi: 'healthy',
+      calendarService: calendarServiceHealthy ? 'healthy' : 'unhealthy'
+    },
+    calendarServiceUrl: process.env.CALENDAR_SERVICE_URL || 'http://localhost:3000'
+  });
 });
 
 app.use('/api/message', messagingRoutes);
@@ -52,4 +64,6 @@ app.use('/api/message', messagingRoutes);
 app.listen(port, '0.0.0.0', () => {
   logger.info(`CTAAAPI Server is running on http://0.0.0.0:${port}`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`📅 CalendarService URL: ${process.env.CALENDAR_SERVICE_URL || 'http://localhost:3000'}`);
+  logger.info(`🔧 Debug CalendarService: http://localhost:${port}/api/events/debug`);
 });
